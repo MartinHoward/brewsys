@@ -1,6 +1,6 @@
 import os
 import time
-#import smbus
+import smbus2
 import signal
 import sys
 import pickle

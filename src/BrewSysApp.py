@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
-from __future__ import division
+#from __future__ import division
 import smbus2
 import signal
 import sys
-from PyQt5 import QtCore, QtGui, uic
+import PyQt5.QtWidgets as QtWidgets
+from PyQt5 import QtCore
 from BrewSysMain import Ui_brewSysMain
 from BrewSysTools import *
 
@@ -14,24 +15,13 @@ mlt_in_temp_sensor = '/sys/bus/w1/devices/28-03160468a3ff/w1_slave'
 mlt_temp_sensor = '/sys/bus/w1/devices/28-031565df43ff/w1_slave'
 wire1_switch = '/sys/bus/w1/devices/3a-000000211dad/output'
 
-
-class BrewSysApp(QtGui.QMainWindow, Ui_brewSysMain):
+class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
     def __init__(self, sim_mode):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         Ui_brewSysMain.__init__(self)
         self.setupUi(self)
         self.timer1 = QtCore.QTimer()
         self.simMode = sim_mode
-        self.connect(self.timer1, QtCore.SIGNAL('timeout()'), self.periodic)
-        self.connect(self.proceedButton, QtCore.SIGNAL('pressed()'), self.userProceed)
-        self.connect(self.stepMashApplyButton, QtCore.SIGNAL('pressed()'), self.updateStepMashSettings)
-        self.connect(self.hltHeaterToggleButton, QtCore.SIGNAL('pressed()'), self.overrideHltHeater)
-        self.connect(self.hltPumpToggleButton, QtCore.SIGNAL('pressed()'), self.overrideHltPump)
-        self.connect(self.mltPumpToggleButton, QtCore.SIGNAL('pressed()'), self.overrideMltPump)
-        self.connect(self.pauseSpargeButton, QtCore.SIGNAL('pressed()'), self.handleSpargePauseButtonPress)
-        self.connect(self.step2EnableCheckBox, QtCore.SIGNAL('stateChanged(int)'), self.handleStep2CheckBox)
-        self.connect(self.step3EnableCheckBox, QtCore.SIGNAL('stateChanged(int)'), self.handleStep3CheckBox)
-        self.timer1.start(5000)
 
         # set up temp sensors
         if not self.simMode:
@@ -66,6 +56,17 @@ class BrewSysApp(QtGui.QMainWindow, Ui_brewSysMain):
         self.setHltPumpStatusDisplay(self.brewFSMState[4])
         self.setMtPumpStatusDisplay(self.brewFSMState[5])
         self.persistence_counter = 0
+
+        self.timer1.timeout.connect(self.periodic())
+        self.proceedButton.clicked.connect(self.userProceed())
+        self.stepMashApplyButton.clicked.connect(self.updateStepMashSettings())
+        self.hltHeaterToggleButton.clicked.connect(self.overrideHltHeater())
+        self.hltPumpToggleButton.clicked.connect(self.overrideHltPump())
+        self.mltPumpToggleButton.clicked.connect(self.overrideMltPump())
+        self.pauseSpargeButton.clicked.connect(self.handleSpargePauseButtonPress())
+        self.step2EnableCheckBox.clicked.connect(self.handleStep2CheckBox())
+        self.step3EnableCheckBox.clicked.connect(self.handleStep3CheckBox())
+        self.timer1.start(5000)
 
         # initialize mash step controls
         self.updateStepMashControls()
@@ -617,8 +618,8 @@ class BrewSysApp(QtGui.QMainWindow, Ui_brewSysMain):
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    widget = QtGui.QDesktopWidget()
+    app = QtWidgets.QApplication(sys.argv)
+    widget = QtWidgets.QDesktopWidget()
 
     window = BrewSysApp(False)
     rect = widget.availableGeometry(0)
