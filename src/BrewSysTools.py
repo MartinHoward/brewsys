@@ -1,9 +1,9 @@
 import os
 import time
-import smbus
+#import smbus
 import signal
 import sys
-import cPickle
+import pickle
 
 from subprocess import call
 
@@ -318,7 +318,7 @@ class BrewTempSensor:
 class BrewSysRelay:
     #global bus
     def __init__(self):
-        self.bus = smbus.SMBus(1)       # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
+        self.bus = smbus2.SMBus(1)       # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
         self.DEVICE_ADDRESS = 0x20      # 7 bit address (will be left shifted to add the read write bit)
         self.DEVICE_REG_MODE1 = 0x06
         self.DEVICE_REG_DATA = 0xff

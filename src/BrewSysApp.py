@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 from __future__ import division
-import smbus
+import smbus2
 import signal
 import sys
 from PyQt5 import QtCore, QtGui, uic
-from src.BrewSysMain import Ui_brewSysMain
-from src.BrewSysTools import *
+from BrewSysMain import Ui_brewSysMain
+from BrewSysTools import *
 
 # 1-wire device files
 hlt_temp_sensor = '/sys/bus/w1/devices/28-021601a96aff/w1_slave'
