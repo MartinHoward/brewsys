@@ -5,6 +5,7 @@ import smbus2
 import signal
 import sys
 import PyQt5.QtWidgets as QtWidgets
+import pickle
 from PyQt5 import QtCore
 from BrewSysMain import Ui_brewSysMain
 from BrewSysTools import *
@@ -492,14 +493,14 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             print("BrewSysFSM.persist not found")
         else:
             # Load saved state
-            self.brewFSM = cPickle.load(f)
+            self.brewFSM = pickle.load(f)
             f.close()
 
     def saveBrewFsmState(self):
         # Update persistence file every few calls
         if self.persistence_counter >= 5:
             f = open('BrewSysFSM.persist', "wb")
-            cPickle.dump(self.brewFSM, f)
+            pickle.dump(self.brewFSM, f)
             f.close()
             self.persistence_counter = 0
 
