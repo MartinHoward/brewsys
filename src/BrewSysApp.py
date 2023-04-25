@@ -57,15 +57,15 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.setMtPumpStatusDisplay(self.brewFSMState[5])
         self.persistence_counter = 0
 
-        self.timer1.timeout.connect(self.periodic())
-        self.proceedButton.clicked.connect(self.userProceed())
-        self.stepMashApplyButton.clicked.connect(self.updateStepMashSettings())
-        self.hltHeaterToggleButton.clicked.connect(self.overrideHltHeater())
-        self.hltPumpToggleButton.clicked.connect(self.overrideHltPump())
-        self.mltPumpToggleButton.clicked.connect(self.overrideMltPump())
-        self.pauseSpargeButton.clicked.connect(self.handleSpargePauseButtonPress())
-        self.step2EnableCheckBox.clicked.connect(self.handleStep2CheckBox())
-        self.step3EnableCheckBox.clicked.connect(self.handleStep3CheckBox())
+        self.timer1.timeout.connect(lambda: self.periodic())
+        self.proceedButton.clicked.connect(lambda: self.userProceed())
+        self.stepMashApplyButton.clicked.connect(lambda: self.updateStepMashSettings())
+        self.hltHeaterToggleButton.clicked.connect(lambda: self.overrideHltHeater())
+        self.hltPumpToggleButton.clicked.connect(lambda: self.overrideHltPump())
+        self.mltPumpToggleButton.clicked.connect(lambda: self.overrideMltPump())
+        self.pauseSpargeButton.clicked.connect(lambda: self.handleSpargePauseButtonPress())
+        self.step2EnableCheckBox.clicked.connect(lambda: self.handleStep2CheckBox())
+        self.step3EnableCheckBox.clicked.connect(lambda: self.handleStep3CheckBox())
         self.timer1.start(5000)
 
         # initialize mash step controls

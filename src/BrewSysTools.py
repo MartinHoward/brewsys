@@ -372,7 +372,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(2))
+            self.f.write(str(2).encode('utf-8'))
             self.f.close()
 
     def closeSwitchB(self):
@@ -382,7 +382,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(2))
+            self.f.write(str(2).encode('utf-8'))
             self.f.close()
 
     def openSwitchAll(self):
@@ -392,7 +392,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(3))
+            self.f.write(str(3).encode('utf-8'))
             self.f.close()
 
 
