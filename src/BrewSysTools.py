@@ -50,8 +50,8 @@ mash_mashout_str=               'Mash Out'
 mash_sparge_wait_str=           'Reconfigure For Sparging Then Drain MLT - Press To Continue'
 mash_sparge_str=                'Sparging First Batch - Press When MLT Is Full'
 mash_sparge2_refill_wait_str=   'Refill HLT With Hot Water - Press To Continue'
-mash_sparge2_preheat_str=       'Preheating HLT for Second Batch Sparge'
-mash_sparge2_wait_str=          'Preheat Complete, Drain MLT - Press To Begin Second Sparge'
+mash_sparge2_preheat_str=       'Waiting for Second Batch Sparge'
+mash_sparge2_wait_str=          'Drain MLT - Press To Begin Second Sparge'
 mash_sparge2_str=               'Sparging Second Batch - Press When MLT Is Full'
 mash_step1_str=                 'Mash Step 1 - Rest'
 mash_step2_str=                 'Mash Step 2 - Rest'
@@ -75,8 +75,8 @@ mash_pre_mash_out =         [mash_pre_mashout_str,          82.0,           temp
 mash_mash_out =	            [mash_mashout_str,              76.0,           temp_src_mt_in, mashout_period,     True,           True        ]
 mash_sparge_wait =          [mash_sparge_wait_str,          76.0,           temp_src_hlt,   time_wait,          True,           False       ]
 mash_sparge =               [mash_sparge_str,               76.0,           temp_src_hlt,   time_wait,          False,          True        ]
-mash_sparge2_refill_wait =  [mash_sparge2_refill_wait_str,  temp_na,        temp_src_hlt,   time_wait,          False,          False       ]
-mash_sparge2_preheat =	    [mash_sparge2_preheat_str,      76.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
+#mash_sparge2_refill_wait =  [mash_sparge2_refill_wait_str,  temp_na,        temp_src_hlt,   time_wait,          False,          False       ]
+mash_sparge2_preheat =	    [mash_sparge2_preheat_str,      76.0,           temp_src_hlt,   20,                 True,           False       ]
 mash_sparge2_wait =	        [mash_sparge2_wait_str,         76.0,           temp_src_hlt,   time_wait,          True,           False       ]
 mash_sparge2 =              [mash_sparge2_str,              76.0,           temp_src_hlt,   time_wait,          False,          True        ]
 
@@ -95,10 +95,10 @@ sched_index_pre_mashout=            11
 sched_index_mashout=                12
 sched_index_sparge_wait=            13
 sched_index_sparge=                 14
-sched_index_sparge2_refill_wait=    15
-sched_index_sparge2_preheat=        16
-sched_index_sparge2_wait=           17
-sched_index_sparge2=                18
+#sched_index_sparge2_refill_wait=    15
+sched_index_sparge2_preheat=        15
+sched_index_sparge2_wait=           16
+sched_index_sparge2=                17
 
 sched_index_last = sched_index_sparge2
 
@@ -117,7 +117,7 @@ mash_schedule =    [mash_start,
                     mash_mash_out,
                     mash_sparge_wait,
                     mash_sparge,
-                    mash_sparge2_refill_wait,
+#                    mash_sparge2_refill_wait,
                     mash_sparge2_preheat,
                     mash_sparge2_wait,
                     mash_sparge2]

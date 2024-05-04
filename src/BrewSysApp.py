@@ -402,7 +402,8 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 self.onboardRelays.OFF_2()
 
     def overrideMltPump(self):
-        if (self.brewFSMState == mash_pre_check) or \
+        if (self.brewFSMState == mash_start) or \
+                (self.brewFSMState == mash_pre_check) or \
                 (self.brewFSMState == mash_sparge) or \
                 (self.brewFSMState == mash_sparge2):
             if self.mltPumpOverride == True:
@@ -599,6 +600,10 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         if self.brewFSMState == mash_pre_check:
             self.hltHeaterToggleButton.setEnabled(True)
             self.hltPumpToggleButton.setEnabled(True)
+            self.mltPumpToggleButton.setEnabled(True)
+        elif self.brewFSMState == mash_start:
+            self.hltHeaterToggleButton.setEnabled(False)
+            self.hltPumpToggleButton.setEnabled(False)
             self.mltPumpToggleButton.setEnabled(True)
         else:
             self.hltHeaterToggleButton.setEnabled(False)
