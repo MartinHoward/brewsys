@@ -55,7 +55,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.handleFsmStateChange(self.brewFSMState)
         self.proceedButton.setText(self.brewFSMState[0])
         self.setHltPumpStatusDisplay(self.brewFSMState[4])
-        self.setMtPumpStatusDisplay(self.brewFSMState[5])
+        self.setMltPumpStatusDisplay(self.brewFSMState[5])
         self.persistence_counter = 0
 
         self.timer1.timeout.connect(lambda: self.periodic())
@@ -254,10 +254,10 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         else:
             text_color = "black"
 
-        self.mtInTempDisplay.clear()
-        self.mtInTempDisplay.setStyleSheet("QTextEdit {color : " + text_color + "}")
-        self.mtInTempDisplay.setAlignment(QtCore.Qt.AlignCenter)
-        self.mtInTempDisplay.append(display_string)
+        self.mltInTempDisplay.clear()
+        self.mltInTempDisplay.setStyleSheet("QTextEdit {color : " + text_color + "}")
+        self.mltInTempDisplay.setAlignment(QtCore.Qt.AlignCenter)
+        self.mltInTempDisplay.append(display_string)
 
     def writeMltOutTempDisplay(self, temp, target_temp):
         display_string = "%.1f" % float(temp)
@@ -276,10 +276,10 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         else:
             text_color = "black"
 
-        self.mtOutTempDisplay.clear()
-        self.mtOutTempDisplay.setStyleSheet("QTextEdit {color : " + text_color + "}")
-        self.mtOutTempDisplay.setAlignment(QtCore.Qt.AlignCenter)
-        self.mtOutTempDisplay.append(display_string)
+        self.mltOutTempDisplay.clear()
+        self.mltOutTempDisplay.setStyleSheet("QTextEdit {color : " + text_color + "}")
+        self.mltOutTempDisplay.setAlignment(QtCore.Qt.AlignCenter)
+        self.mltOutTempDisplay.append(display_string)
 
     def setHltHeaterStatusDisplay(self, enabled):
         if enabled == False:
@@ -297,13 +297,13 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             self.hltPumpStatusDisplay.setStyleSheet("QLineEdit {background-color : lightgreen}")
             self.hltPumpStatusDisplay.setText("Working")
 
-    def setMtPumpStatusDisplay(self, enabled):
+    def setMltPumpStatusDisplay(self, enabled):
         if enabled == False:
-            self.mtPumpStatusDisplay.setStyleSheet("QLineEdit {background-color : red}")
-            self.mtPumpStatusDisplay.setText("Stopped")
+            self.mltPumpStatusDisplay.setStyleSheet("QLineEdit {background-color : red}")
+            self.mltPumpStatusDisplay.setText("Stopped")
         else:
-            self.mtPumpStatusDisplay.setStyleSheet("QLineEdit {background-color : lightgreen}")
-            self.mtPumpStatusDisplay.setText("Working")
+            self.mltPumpStatusDisplay.setStyleSheet("QLineEdit {background-color : lightgreen}")
+            self.mltPumpStatusDisplay.setText("Working")
 
     def simulateTemperature(self, hltTemp, mltInTemp, mltTemp, heaterOn):
         if heaterOn:
@@ -321,7 +321,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 hltTemp += 0.2
             else:
                 hltTemp -= 0.05
-        elif self.brewFSMState == mash_mt_heating:
+        elif self.brewFSMState == mash_mlt_heating:
             if heating == True:
                 hltTemp += 0.1
                 mltTemp += 0.2
@@ -388,7 +388,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 self.onboardRelays.OFF_2()
 
     def overrideMltPump(self):
-        if self.brewFSMState[state_index_mt_pump_override]:
+        if self.brewFSMState[state_index_mlt_pump_override]:
             self.mltPumpOverride = not self.mltPumpOverride
         else:
             self.mltPumpOverride = False
@@ -424,7 +424,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             enableHeater = hltHeaterState
 
         # Need to check if HLT temp is too high above the target during MLT preheat state
-        if self.brewFSMState == mash_mt_heating or self.brewFSMState == mash_mt_heating_wait:
+        if self.brewFSMState == mash_mlt_heating or self.brewFSMState == mash_mlt_heating_wait:
             if currentTemp <= (targetTemp - self.tempTargetTolerance):
                 # If we are still well off the target temp check that we are under max HLT overshoot
                 if hltTemp > (targetTemp + self.brewFSM.getHltMaxTargetTempOvershoot()):
@@ -531,14 +531,14 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         # Check if HLT heater needs to be turned on/off
         if self.brewFSMState[state_index_temp_source] == temp_src_hlt:
             self.enableHltHeater = self.tempControl(self.hltTemp, self.hltTemp, self.enableHltHeater)
-        elif self.brewFSMState[state_index_temp_source] == temp_src_mt_in:
+        elif self.brewFSMState[state_index_temp_source] == temp_src_mlt_in:
             self.enableHltHeater = self.tempControl(self.mltInTemp, self.hltTemp, self.enableHltHeater)
         else:
             self.enableHltHeater = self.tempControl(self.mltTemp, self.hltTemp, self.enableHltHeater)
 
         # Control relays
         self.enableHltPump(self.isHltPumpToBeEnabled(self.brewFSMState[state_index_hlt_pump]))
-        self.enableMltPump(self.isMltPumpToBeEnabled(self.brewFSMState[state_index_mt_pump]))
+        self.enableMltPump(self.isMltPumpToBeEnabled(self.brewFSMState[state_index_mlt_pump]))
         self.enableHltHeatingElement(self.isHltHeaterToBeEnabled(self.enableHltHeater))
 
         #### Update dashboard
@@ -547,7 +547,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             self.writeHltTempDisplay(self.hltTemp, self.brewFSMState[state_index_temp_target])
             self.writeMltInTempDisplay(self.mltInTemp, 0)
             self.writeMltOutTempDisplay(self.mltTemp, 0)
-        elif self.brewFSMState[state_index_temp_source] == temp_src_mt_in:
+        elif self.brewFSMState[state_index_temp_source] == temp_src_mlt_in:
             self.writeHltTempDisplay(self.hltTemp, 0)
             self.writeMltInTempDisplay(self.mltInTemp, self.brewFSMState[state_index_temp_target])
             self.writeMltOutTempDisplay(self.mltTemp, self.brewFSMState[state_index_temp_target])
@@ -558,7 +558,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
 
         # Update pump/heater status display
         self.setHltPumpStatusDisplay(self.isHltPumpToBeEnabled(self.brewFSMState[state_index_hlt_pump]))
-        self.setMtPumpStatusDisplay(self.isMltPumpToBeEnabled(self.brewFSMState[state_index_mt_pump]))
+        self.setMltPumpStatusDisplay(self.isMltPumpToBeEnabled(self.brewFSMState[state_index_mlt_pump]))
         self.setHltHeaterStatusDisplay(self.isHltHeaterToBeEnabled(self.enableHltHeater))
 
         # Update timer display
@@ -570,7 +570,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         # Update toggle buttons
         self.hltHeaterToggleButton.setEnabled(self.brewFSMState[state_index_heater_override])
         self.hltPumpToggleButton.setEnabled(self.brewFSMState[state_index_hlt_pump_override])
-        self.mltPumpToggleButton.setEnabled(self.brewFSMState[state_index_mt_pump_override])
+        self.mltPumpToggleButton.setEnabled(self.brewFSMState[state_index_mlt_pump_override])
 
         # Save FSM state - every once in a while
         if self.brewFSMState != mash_start:
@@ -589,7 +589,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     widget = QtWidgets.QDesktopWidget()
 
-    window = BrewSysApp(True)
+    window = BrewSysApp(False)
     rect = widget.availableGeometry(0)
     window.move(rect.left(), rect.top())
     # window.resize(rect.width(),rect.height())
