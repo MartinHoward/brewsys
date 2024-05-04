@@ -355,16 +355,11 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
 
     def isHltPumpToBeEnabled(self, fsm_enable):
         if fsm_enable == True:
-            if self.hltPumpOverride == False:
-                return True
-            else:
-                return False
-        else:
-            if (self.hltPumpOverride == False):
-                return False
-            else:
-                return True
+            return not self.hltPumpOverride
 
+        else:
+            return self.hltPumpOverride
+        
     def enableHltPump(self, enable):
         if (self.simMode == False):
             if enable == True:
@@ -373,26 +368,17 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 self.onboardRelays.OFF_1()
 
     def overrideHltPump(self):
-        if self.brewFSMState == mash_pre_check:
-            if self.hltPumpOverride == True:
-                self.hltPumpOverride = False
-            else:
-                self.hltPumpOverride = True
+        if self.brewFSMState[state_index_hlt_pump_override]:
+            self.hltPumpOverride = not self.hltPumpOverride
         else:
             self.hltPumpOverride = False
         self.periodic()
 
     def isMltPumpToBeEnabled(self, fsm_enable):
         if fsm_enable == True:
-            if self.mltPumpOverride == False:
-                return True
-            else:
-                return False
+            return not self.mltPumpOverride
         else:
-            if (self.mltPumpOverride == False):
-                return False
-            else:
-                return True
+            return self.mltPumpOverride
 
     def enableMltPump(self, enable):
         if (self.simMode == False):
@@ -402,29 +388,17 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 self.onboardRelays.OFF_2()
 
     def overrideMltPump(self):
-        if (self.brewFSMState == mash_start) or \
-                (self.brewFSMState == mash_pre_check) or \
-                (self.brewFSMState == mash_sparge) or \
-                (self.brewFSMState == mash_sparge2):
-            if self.mltPumpOverride == True:
-                self.mltPumpOverride = False
-            else:
-                self.mltPumpOverride = True
+        if self.brewFSMState[state_index_mt_pump_override]:
+            self.mltPumpOverride = not self.mltPumpOverride
         else:
             self.mltPumpOverride = False
         self.periodic()
 
     def isHltHeaterToBeEnabled(self, enable):
         if enable == True:
-            if self.hltHeaterOverride == False:
-                return True
-            else:
-                return False
+            return not self.hltHeaterOverride
         else:
-            if self.hltHeaterOverride == False:
-                return False
-            else:
-                return True
+            return self.hltHeaterOverride
 
     def enableHltHeatingElement(self, enable):
         if (self.simMode == False):
@@ -434,11 +408,8 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
                 self.heaterSwitch.openSwitchAll()
 
     def overrideHltHeater(self):
-        if self.brewFSMState == mash_pre_check:
-            if self.hltHeaterOverride == True:
-                self.hltHeaterOverride = False
-            else:
-                self.hltHeaterOverride = True
+        if self.brewFSMState[state_index_heater_override]:
+            self.hltHeaterOverride = not self.hltHeaterOverride
         else:
             self.hltHeaterOverride = False
         self.periodic()
@@ -597,18 +568,9 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.updateStepMashIndicators(self.brewFSMState)
 
         # Update toggle buttons
-        if self.brewFSMState == mash_pre_check:
-            self.hltHeaterToggleButton.setEnabled(True)
-            self.hltPumpToggleButton.setEnabled(True)
-            self.mltPumpToggleButton.setEnabled(True)
-        elif self.brewFSMState == mash_start:
-            self.hltHeaterToggleButton.setEnabled(False)
-            self.hltPumpToggleButton.setEnabled(False)
-            self.mltPumpToggleButton.setEnabled(True)
-        else:
-            self.hltHeaterToggleButton.setEnabled(False)
-            self.hltPumpToggleButton.setEnabled(False)
-            self.mltPumpToggleButton.setEnabled(False)
+        self.hltHeaterToggleButton.setEnabled(self.brewFSMState[state_index_heater_override])
+        self.hltPumpToggleButton.setEnabled(self.brewFSMState[state_index_hlt_pump_override])
+        self.mltPumpToggleButton.setEnabled(self.brewFSMState[state_index_mt_pump_override])
 
         # Save FSM state - every once in a while
         if self.brewFSMState != mash_start:
@@ -627,7 +589,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     widget = QtWidgets.QDesktopWidget()
 
-    window = BrewSysApp(False)
+    window = BrewSysApp(True)
     rect = widget.availableGeometry(0)
     window.move(rect.left(), rect.top())
     # window.resize(rect.width(),rect.height())
