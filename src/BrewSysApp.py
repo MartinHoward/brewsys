@@ -9,6 +9,7 @@ import pickle
 from PyQt5 import QtCore
 from BrewSysMain import Ui_brewSysMain
 from BrewSysTools import *
+from threading import Thread
 
 # 1-wire device files
 hlt_temp_sensor = '/sys/bus/w1/devices/28-021601a96aff/w1_slave'
@@ -23,6 +24,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.setupUi(self)
         self.timer1 = QtCore.QTimer()
         self.simMode = sim_mode
+        self.thr = Thread(target=self.getTempFromSensors, args=(), kwargs={})
 
         # set up temp sensors
         if not self.simMode:
@@ -71,6 +73,20 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
 
         # initialize mash step controls
         self.updateStepMashControls()
+        
+        self.thr.start()
+        
+    def getTempFromSensors(self):
+        while True:
+            #### Get current temp readings
+            if (self.simMode == False):
+                self.hltTemp = self.hltTempSensor.readTempCelcius()
+                self.mltInTemp = self.mltInTempSensor.readTempCelcius()
+                self.mltTemp = self.mltTempSensor.readTempCelcius()
+            else:
+                self.hltTemp, self.mltInTemp, self.mltTemp = self.simulateTemperature(self.hltTemp, self.mltInTemp,
+                                                                                      self.mltTemp, self.enableHltHeater)
+            time.sleep(5)
 
     def updateStepMashControls(self):
         # First update the step 1 controls
@@ -506,13 +522,14 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             self.handleFsmStateChange(self.brewFSMState)
 
         #### Get current temp readings
-        if (self.simMode == False):
-            self.hltTemp = self.hltTempSensor.readTempCelcius()
-            self.mltInTemp = self.mltInTempSensor.readTempCelcius()
-            self.mltTemp = self.mltTempSensor.readTempCelcius()
-        else:
-            self.hltTemp, self.mltInTemp, self.mltTemp = self.simulateTemperature(self.hltTemp, self.mltInTemp,
-                                                                                  self.mltTemp, self.enableHltHeater)
+#        self.getTempFromSensors()
+#        if (self.simMode == False):
+#            self.hltTemp = self.hltTempSensor.readTempCelcius()
+#            self.mltInTemp = self.mltInTempSensor.readTempCelcius()
+#            self.mltTemp = self.mltTempSensor.readTempCelcius()
+#        else:
+#            self.hltTemp, self.mltInTemp, self.mltTemp = self.simulateTemperature(self.hltTemp, self.mltInTemp,
+#                                                                                  self.mltTemp, self.enableHltHeater)
 
         #### Take appropriate actions - state machine processing
         self.brewFSMState, self.fsmStateTimeLeft, self.fsmChange = self.brewFSM.fsmGetUpdate()
