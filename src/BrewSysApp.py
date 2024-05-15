@@ -12,7 +12,7 @@ from BrewSysTools import *
 
 # 1-wire device files
 hlt_temp_sensor = '/sys/bus/w1/devices/28-021601a96aff/w1_slave'
-mlt_in_temp_sensor = '/sys/bus/w1/devices/28-03160468a3ff/w1_slave'
+mlt_in_temp_sensor = '/sys/bus/w1/devices/28-0316a49acfff/w1_slave'
 mlt_temp_sensor = '/sys/bus/w1/devices/28-031565df43ff/w1_slave'
 wire1_switch = '/sys/bus/w1/devices/3a-000000211dad/output'
 
@@ -53,9 +53,9 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.restoreBrewFsmState()
         self.brewFSMState, self.fsmStateTimeLeft, self.fsmChange = self.brewFSM.fsmGetUpdate()
         self.handleFsmStateChange(self.brewFSMState)
-        self.proceedButton.setText(self.brewFSMState[0])
-        self.setHltPumpStatusDisplay(self.brewFSMState[4])
-        self.setMltPumpStatusDisplay(self.brewFSMState[5])
+        self.proceedButton.setText(self.brewFSMState[state_index_text_disp])
+        self.setHltPumpStatusDisplay(self.brewFSMState[state_index_hlt_pump])
+        self.setMltPumpStatusDisplay(self.brewFSMState[state_index_mlt_pump])
         self.persistence_counter = 0
 
         self.timer1.timeout.connect(lambda: self.periodic())
@@ -318,22 +318,24 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
 
         if self.brewFSMState == mash_hlt_heating:
             if heating == True:
-                hltTemp += 0.2
+                hltTemp += 0.5
             else:
-                hltTemp -= 0.05
+                hltTemp -= 0.1
         elif self.brewFSMState == mash_mlt_heating:
             if heating == True:
                 hltTemp += 0.1
-                mltTemp += 0.2
+                mltTemp += 0.5
             else:
-                hltTemp -= 0.05
+                hltTemp -= 0.1
             mltInTemp = mltTemp + (hltTemp - mltTemp) / 2
         else:
             if heating == True:
-                hltTemp += 0.2
+                hltTemp += 0.5
+                mltTemp += 0.5
             else:
-                hltTemp -= 0.05
-
+                hltTemp -= 0.1
+                mltTemp -= 0.05
+                
             mltInTemp = hltTemp
             mltTemp = hltTemp
 
@@ -356,7 +358,6 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
     def isHltPumpToBeEnabled(self, fsm_enable):
         if fsm_enable == True:
             return not self.hltPumpOverride
-
         else:
             return self.hltPumpOverride
         
@@ -492,7 +493,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             self.clearBrewFsmState()
             self.proceedButton.setEnabled(False)
 
-        if (self.brewFSMState == mash_sparge) or (self.brewFSMState == mash_sparge2):
+        if self.brewFSMState[state_index_mlt_pump_override] == True:
             self.pauseSpargeButton.show()
         else:
             self.pauseSpargeButton.hide()
