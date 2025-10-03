@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BrewSys Status</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>BrewSys Main Status</h1>
+    <div class="status-section">
+        <h2>Temperatures</h2>
+        <ul>
+            <li id="hlt_temp">HLT: {{ hlt_temp }} &deg;C</li>
+            <li id="mt_in_temp">MT In: {{ mt_in_temp }} &deg;C</li>
+            <li id="mt_out_temp">MT Out: {{ mt_out_temp }} &deg;C</li>
+        </ul>
+        <h2>System State</h2>
+        <p>Current State: <strong id="current_state">{{ current_state }}</strong></p>
+        <h2>Elements</h2>
+        <ul>
+            <li id="hlt_heater">HLT Heater: {{ hlt_heater }}
+                <button onclick="toggleElement('hlt_heater')">Toggle</button>
+            </li>
+            <li id="hlt_pump">HLT Pump: {{ hlt_pump }}
+                <button onclick="toggleElement('hlt_pump')">Toggle</button>
+            </li>
+            <li id="mt_pump">MT Pump: {{ mt_pump }}
+                <button onclick="toggleElement('mt_pump')">Toggle</button>
+            </li>
+        </ul>
+        <h2>Time Left</h2>
+        <p id="time_left">{{ time_left }}</p>
+        <button>Proceed</button>
+    </div>
+    <script>
+    let lastStatus = {};
+    function updateStatus() {
+        fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                lastStatus = data;
+                document.getElementById('hlt_temp').innerHTML = `HLT: ${data.hlt_temp} &deg;C`;
+                document.getElementById('mt_in_temp').innerHTML = `MT In: ${data.mt_in_temp} &deg;C`;
+                document.getElementById('mt_out_temp').innerHTML = `MT Out: ${data.mt_out_temp} &deg;C`;
+                document.getElementById('current_state').textContent = data.current_state;
+                document.getElementById('hlt_heater').innerHTML = `HLT Heater: ${data.hlt_heater} <button onclick=\"toggleElement('hlt_heater')\">Toggle</button>`;
+                document.getElementById('hlt_pump').innerHTML = `HLT Pump: ${data.hlt_pump} <button onclick=\"toggleElement('hlt_pump')\">Toggle</button>`;
+                document.getElementById('mt_pump').innerHTML = `MT Pump: ${data.mt_pump} <button onclick=\"toggleElement('mt_pump')\">Toggle</button>`;
+                document.getElementById('time_left').textContent = data.time_left;
+            });
+    }
+    function toggleElement(element) {
+        if (!lastStatus) return;
+        let payload = {};
+        if (element === 'hlt_heater') {
+            payload.hlt_heater = lastStatus.hlt_heater === 'OFF';
+        } else if (element === 'hlt_pump') {
+            payload.hlt_pump = lastStatus.hlt_pump === 'OFF';
+        } else if (element === 'mt_pump') {
+            payload.mt_pump = lastStatus.mt_pump === 'OFF';
+        }
+        fetch('/api/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => setTimeout(updateStatus, 200));
+    }
+    setInterval(updateStatus, 3000); // Refresh every 3 seconds
+    </script>
+</body>
+</html>
