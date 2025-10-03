@@ -1,9 +1,9 @@
 import os
 import time
-import smbus
+import smbus2
 import signal
 import sys
-import cPickle
+import pickle
 
 from subprocess import call
 
@@ -13,12 +13,12 @@ from subprocess import call
 # tags
 time_to_heat_hlt =  -1
 time_to_heat_mlt =  -2
-time_wait=          -3
+time_wait_user =    -3
 temp_na=            -1
 temp_src_na=         0
 temp_src_hlt=        1
-temp_src_mt_in=      2
-temp_src_mt=         3
+temp_src_mlt_in=     2
+temp_src_mlt=        3
 
 # The following variables could be added to a configuration screen
 hlt_temp_overshoot = 5.0		# Amount to overshoot HLT temp during a step preheat
@@ -26,18 +26,21 @@ max_hlt_temp_target_overshoot = 2.0	 # Maximum temp difference between HLT and t
                                      # must not be used in conjunction with hlt_temp_overshoot
 mashout_period = 20
 
-state_index_text_disp=0
-state_index_temp_target=1
-state_index_temp_source=2
-state_index_time=3
-state_index_hlt_pump=4
-state_index_mt_pump=5
+state_index_text_disp=          0
+state_index_temp_target=        1
+state_index_temp_source=        2
+state_index_time=               3
+state_index_hlt_pump=           4
+state_index_mlt_pump=           5
+state_index_heater_override=    6
+state_index_hlt_pump_override=  7
+state_index_mlt_pump_override=  8
 
 mash_start_str=                 'Press To Start Mash'
 mash_pre_check_str=	            'System Check - Press When Ready'
 mash_hlt_preheat_str=           'Pre-Heating HLT'
-mash_mt_preheat_str=            'Pre-Heating MLT'
-mash_mt_preheat_wait_str=       'Pre-Heating Complete - Press To Continue'
+mash_mlt_preheat_str=           'Pre-Heating MLT'
+mash_mlt_preheat_wait_str=      'Pre-Heating Complete - Press To Continue'
 mash_contrinue_str=             'Add Grains - Press To Continue'
 mash_doughin_str=               'Dough In'
 mash_acidrest_str=              'Acid Rest'
@@ -49,36 +52,38 @@ mash_pre_mashout_str=           'Preheat To Mash Out'
 mash_mashout_str=               'Mash Out'
 mash_sparge_wait_str=           'Reconfigure For Sparging Then Drain MLT - Press To Continue'
 mash_sparge_str=                'Sparging First Batch - Press When MLT Is Full'
-mash_sparge2_refill_wait_str=   'Refill HLT With Hot Water - Press To Continue'
-mash_sparge2_preheat_str=       'Preheating HLT for Second Batch Sparge'
-mash_sparge2_wait_str=          'Preheat Complete, Drain MLT - Press To Begin Second Sparge'
+mash_sparge2_preheat_str=       'Waiting for Second Batch Sparge'
+mash_sparge2_wait_str=          'Drain MLT - Press To Begin Second Sparge'
 mash_sparge2_str=               'Sparging Second Batch - Press When MLT Is Full'
+mash_sparge3_preheat_str=       'Waiting for Final Batch Sparge'
+mash_sparge3_wait_str=          'Drain MLT - Press To End Brewing Session!'
 mash_step1_str=                 'Mash Step 1 - Rest'
 mash_step2_str=                 'Mash Step 2 - Rest'
 mash_step3_str=                 'Mash Step 3 - Rest'
 mash_pre_step2_str=             'Preheating to Step 2 Temperature'
 mash_pre_step3_str=             'Preheating to Step 3 Temperature'
 
-# mash state                #State Display Text         #Target Temp        #Temp Source	#Time in State  	#HLT Pump On    #MT Pump On
-mash_start =                [mash_start_str,                temp_na,        temp_src_na,    time_wait,          False,          False       ]
-mash_pre_check =            [mash_pre_check_str,            temp_na,        temp_src_na,    time_wait,          True,           True        ]
-mash_hlt_heating =          [mash_hlt_preheat_str,          70.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
-mash_mt_heating =           [mash_mt_preheat_str,           70.0,           temp_src_mt,    time_to_heat_mlt,   True,           True        ]
-mash_mt_heating_wait =      [mash_mt_preheat_wait_str,      70.0,           temp_src_mt,    time_wait,          True,           True        ]
-mash_wait =                 [mash_contrinue_str,            70.0,           temp_src_hlt,   time_wait,          True,           False       ]
-mash_step1_rest =           [mash_step1_str,                66.0,           temp_src_mt_in, 60,                 True,           True        ]
-mash_pre_step2 =            [mash_pre_step2_str,            0.0,            temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
-mash_step2_rest =           [mash_step2_str,                0.0,            temp_src_mt_in, 0,                  True,           True        ]
-mash_pre_step3 =            [mash_pre_step3_str,            0.0,            temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
-mash_step3_rest =           [mash_step3_str,                0.0,            temp_src_mt_in,	0,                  True,           True        ]
-mash_pre_mash_out =         [mash_pre_mashout_str,          82.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
-mash_mash_out =	            [mash_mashout_str,              76.0,           temp_src_mt_in, mashout_period,     True,           True        ]
-mash_sparge_wait =          [mash_sparge_wait_str,          76.0,           temp_src_hlt,   time_wait,          True,           False       ]
-mash_sparge =               [mash_sparge_str,               76.0,           temp_src_hlt,   time_wait,          False,          True        ]
-mash_sparge2_refill_wait =  [mash_sparge2_refill_wait_str,  temp_na,        temp_src_hlt,   time_wait,          False,          False       ]
-mash_sparge2_preheat =	    [mash_sparge2_preheat_str,      76.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False       ]
-mash_sparge2_wait =	        [mash_sparge2_wait_str,         76.0,           temp_src_hlt,   time_wait,          True,           False       ]
-mash_sparge2 =              [mash_sparge2_str,              76.0,           temp_src_hlt,   time_wait,          False,          True        ]
+# mash state                #State Display Text         #Target Temp        #Temp Source	#Time in State  	#HLT Pump On    #mlt Pump On     # Heat Over  #HLT Pump Over  #mlt Pump Over
+mash_start =                [mash_start_str,                temp_na,        temp_src_na,    time_wait_user,     False,          False,          False,      False,          True       ]
+mash_pre_check =            [mash_pre_check_str,            temp_na,        temp_src_na,    time_wait_user,     True,           True,           True,       True,           True        ]
+mash_hlt_heating =          [mash_hlt_preheat_str,          70.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False,          False,      False,          False       ]
+mash_mlt_heating =          [mash_mlt_preheat_str,          70.0,           temp_src_mlt,   time_to_heat_mlt,   True,           True,           False,      False,          False       ]
+mash_mlt_heating_wait =     [mash_mlt_preheat_wait_str,     70.0,           temp_src_mlt,   time_wait_user,     True,           True,           False,      False,          False       ]
+mash_wait =                 [mash_contrinue_str,            70.0,           temp_src_hlt,   time_wait_user,     True,           False,          False,      False,          False       ]
+mash_step1_rest =           [mash_step1_str,                66.0,           temp_src_mlt_in, 60,                True,           True,           False,      False,          False       ]
+mash_pre_step2 =            [mash_pre_step2_str,            0.0,            temp_src_hlt,   time_to_heat_hlt,   True,           False,          False,      False,          False       ]
+mash_step2_rest =           [mash_step2_str,                0.0,            temp_src_mlt_in, 0,                 True,           True,           False,      False,          False       ]
+mash_pre_step3 =            [mash_pre_step3_str,            0.0,            temp_src_hlt,   time_to_heat_hlt,   True,           False,          False,      False,          False       ]
+mash_step3_rest =           [mash_step3_str,                0.0,            temp_src_mlt_in, 0,                 True,           True,           False,      False,          False       ]
+mash_pre_mash_out =         [mash_pre_mashout_str,          82.0,           temp_src_hlt,   time_to_heat_hlt,   True,           False,          False,      False,          False       ]
+mash_mash_out =	            [mash_mashout_str,              76.0,           temp_src_mlt_in, mashout_period,    True,           True,           False,      False,          False       ]
+mash_sparge_wait =          [mash_sparge_wait_str,          76.0,           temp_src_hlt,   time_wait_user,     True,           False,          False,      False,          False       ]
+mash_sparge =               [mash_sparge_str,               76.0,           temp_src_hlt,   time_wait_user,     False,          True,           False,      False,          True       ]
+mash_sparge2_preheat =	    [mash_sparge2_preheat_str,      76.0,           temp_src_hlt,   20,                 True,           False,          False,      False,          False       ]
+mash_sparge2_wait =	        [mash_sparge2_wait_str,         76.0,           temp_src_hlt,   time_wait_user,     True,           False,          False,      False,          False       ]
+mash_sparge2 =              [mash_sparge2_str,              76.0,           temp_src_hlt,   time_wait_user,     False,          True,           False,      False,          True       ]
+mash_sparge3_preheat =	    [mash_sparge3_preheat_str,      temp_na,        temp_src_na,   20,                  False,          False,          False,      False,          False       ]
+mash_sparge3_wait =	        [mash_sparge3_wait_str,         temp_na,        temp_src_na,   time_wait_user,      False,          False,          False,      False,          False       ]
 
 sched_index_start=                  0
 sched_index_pre_check=              1
@@ -95,18 +100,19 @@ sched_index_pre_mashout=            11
 sched_index_mashout=                12
 sched_index_sparge_wait=            13
 sched_index_sparge=                 14
-sched_index_sparge2_refill_wait=    15
-sched_index_sparge2_preheat=        16
-sched_index_sparge2_wait=           17
-sched_index_sparge2=                18
+sched_index_sparge2_preheat=        15
+sched_index_sparge2_wait=           16
+sched_index_sparge2=                17
+sched_index_sparge3_preheat=        18
+sched_index_sparge3_wait=           19
 
-sched_index_last = sched_index_sparge2
+sched_index_last = sched_index_sparge3_wait
 
 mash_schedule =    [mash_start,
                     mash_pre_check,
                     mash_hlt_heating,
-                    mash_mt_heating,
-                    mash_mt_heating_wait,
+                    mash_mlt_heating,
+                    mash_mlt_heating_wait,
                     mash_wait,
                     mash_step1_rest,
                     mash_pre_step2,
@@ -117,10 +123,11 @@ mash_schedule =    [mash_start,
                     mash_mash_out,
                     mash_sparge_wait,
                     mash_sparge,
-                    mash_sparge2_refill_wait,
                     mash_sparge2_preheat,
                     mash_sparge2_wait,
-                    mash_sparge2]
+                    mash_sparge2,
+                    mash_sparge3_preheat,
+                    mash_sparge3_wait]
 
 
 class BrewSysFSM:
@@ -167,7 +174,7 @@ class BrewSysFSM:
 
     def userActionReceived(self):
         # triggered by user U/I action or other means
-        # if self.currentState[state_index_time] == time_wait:
+        # if self.currentState[state_index_time] == time_wait_user:
         # Proceed to next state
         self.handleStateChange()
 
@@ -318,7 +325,7 @@ class BrewTempSensor:
 class BrewSysRelay:
     #global bus
     def __init__(self):
-        self.bus = smbus.SMBus(1)       # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
+        self.bus = smbus2.SMBus(1)       # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
         self.DEVICE_ADDRESS = 0x20      # 7 bit address (will be left shifted to add the read write bit)
         self.DEVICE_REG_MODE1 = 0x06
         self.DEVICE_REG_DATA = 0xff
@@ -372,7 +379,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(2))
+            self.f.write(str(2).encode('utf-8'))
             self.f.close()
 
     def closeSwitchB(self):
@@ -382,7 +389,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(2))
+            self.f.write(str(2).encode('utf-8'))
             self.f.close()
 
     def openSwitchAll(self):
@@ -392,7 +399,7 @@ class Brew1WireSwitch:
             print('cannot open ', self.switchDevice)
             return 'empty'
         else:
-            self.f.write(str(3))
+            self.f.write(str(3).encode('utf-8'))
             self.f.close()
 
 
