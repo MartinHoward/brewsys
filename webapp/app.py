@@ -6,7 +6,10 @@ app = Flask(__name__)
 status_provider = BrewSysStatusProvider(sim_mode=False)
 
 import sys
-sys.path.append('../src')
+import os
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 try:
     from BrewSysTools import BrewSysRelay, Brew1WireSwitch
 except ImportError:
