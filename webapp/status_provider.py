@@ -27,6 +27,9 @@ class BrewSysStatusProvider:
 
 
     def __init__(self, sim_mode=True):
+        self._last_hlt_heater = False
+        self._last_hlt_pump = False
+        self._last_mt_pump = False
         self._hardware_error = None
         self.sim_mode = sim_mode
         if not sim_mode:
