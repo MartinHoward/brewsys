@@ -83,4 +83,8 @@ def other_page():
     return render_template('other.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import argparse
+    parser = argparse.ArgumentParser(description='Run BrewSys Web App')
+    parser.add_argument('--host', type=str, default='127.0.0.1', help='Web server IP address (default: 127.0.0.1)')
+    args = parser.parse_args()
+    app.run(debug=True, host=args.host)
