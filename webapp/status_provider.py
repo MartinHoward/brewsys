@@ -175,7 +175,7 @@ class BrewSysStatusProvider:
             hlt_pump = self._sim_hlt_pump
             mt_pump = self._sim_mt_pump
 
-    return {
+        return {
             'hlt_temp': round(self.hlt_temp, 1),
             'mt_in_temp': round(self.mt_in_temp, 1),
             'mt_out_temp': round(self.mt_out_temp, 1),
