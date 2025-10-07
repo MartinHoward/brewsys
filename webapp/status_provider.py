@@ -5,6 +5,7 @@
 import random
 import time
 import os
+import threading
 
 import sys
 sys.path.append('../src')
@@ -20,6 +21,7 @@ class BrewSysStatusProvider:
     MLT_IN_TEMP_SENSOR = '/sys/bus/w1/devices/28-03160468a3ff/w1_slave'
     MLT_TEMP_SENSOR = '/sys/bus/w1/devices/28-031565df43ff/w1_slave'
 
+
     def __init__(self, sim_mode=True):
         self.sim_mode = sim_mode or not self._hardware_available()
         self.hlt_temp = 68.0
@@ -32,6 +34,72 @@ class BrewSysStatusProvider:
         self._sim_hlt_heater = True
         self._sim_hlt_pump = False
         self._sim_mt_pump = True
+
+        # FSM state indices (should match BrewSysApp.py)
+        self.state_index_text_disp = 0
+        self.state_index_temp_target = 1
+        self.state_index_temp_source = 2
+        self.state_index_time = 3
+        self.state_index_hlt_pump = 4
+        self.state_index_mlt_pump = 5
+        self.state_index_heater_override = 6
+        self.state_index_hlt_pump_override = 7
+        self.state_index_mlt_pump_override = 8
+
+        # Simulate FSM state for demo
+        self.fsm_state = [
+            'Heating', 70.0, 1, 600, True, True, True, True, True
+        ]
+
+        # Start background thread for temp updates
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._background_update, daemon=True)
+        self._thread.start()
+
+    def _background_update(self):
+        while not self._stop_event.is_set():
+            if self.sim_mode:
+                self.hlt_temp, self.mt_in_temp, self.mt_out_temp = self._simulate_temperature(
+                    self.hlt_temp, self.mt_in_temp, self.mt_out_temp, self._sim_hlt_heater)
+                self.time_left = max(0, self.time_left - 5)
+            # In real mode, you would read sensors here
+            time.sleep(5)
+
+    def _simulate_temperature(self, hltTemp, mltInTemp, mltTemp, heaterOn):
+        # Updated simulation logic from BrewSysApp.py
+        simTempLag = getattr(self, 'simTempLag', 0)
+        if heaterOn:
+            simTempLag = 3
+        elif simTempLag > 0:
+            simTempLag -= 1
+        heating = heaterOn or simTempLag > 0
+        # Example FSM state for simulation
+        fsm_state = self.fsm_state
+        mash_hlt_heating = 'Heating'  # Placeholder
+        mash_mlt_heating = 'MLT Heating'  # Placeholder
+        if fsm_state[self.state_index_text_disp] == mash_hlt_heating:
+            if heating:
+                hltTemp += 0.5
+            else:
+                hltTemp -= 0.1
+        elif fsm_state[self.state_index_text_disp] == mash_mlt_heating:
+            if heating:
+                hltTemp += 0.1
+                mltTemp += 0.5
+            else:
+                hltTemp -= 0.1
+            mltInTemp = mltTemp + (hltTemp - mltTemp) / 2
+        else:
+            if heating:
+                hltTemp += 0.5
+                mltTemp += 0.5
+            else:
+                hltTemp -= 0.1
+                mltTemp -= 0.05
+            mltInTemp = hltTemp
+            mltTemp = hltTemp
+        self.simTempLag = simTempLag
+        return hltTemp, mltInTemp, mltTemp
 
         # Hardware relay/switch objects (if available)
         self._relay = None
@@ -107,13 +175,18 @@ class BrewSysStatusProvider:
             hlt_pump = self._sim_hlt_pump
             mt_pump = self._sim_mt_pump
 
-        return {
+    return {
             'hlt_temp': round(self.hlt_temp, 1),
             'mt_in_temp': round(self.mt_in_temp, 1),
             'mt_out_temp': round(self.mt_out_temp, 1),
-            'current_state': self.current_state,
+            'current_state': self.fsm_state[self.state_index_text_disp],
             'hlt_heater': 'ON' if hlt_heater else 'OFF',
             'hlt_pump': 'ON' if hlt_pump else 'OFF',
             'mt_pump': 'ON' if mt_pump else 'OFF',
-            'time_left': time.strftime('%H:%M:%S', time.gmtime(self.time_left))
+            'time_left': time.strftime('%H:%M:%S', time.gmtime(self.time_left)),
+            'can_override_heater': self.fsm_state[self.state_index_heater_override],
+            'can_override_hlt_pump': self.fsm_state[self.state_index_hlt_pump_override],
+            'can_override_mlt_pump': self.fsm_state[self.state_index_mlt_pump_override],
+            'fsm_state': self.fsm_state,
+            'sim_mode': self.sim_mode,
         }

@@ -7,6 +7,7 @@
 </head>
 <body>
     <h1>BrewSys Main Status</h1>
+    <div id="sim-indicator" style="color: orange; font-weight: bold; display: none;">Simulation Mode Active</div>
     <div class="status-section">
         <h2>Temperatures</h2>
         <ul>
@@ -19,13 +20,13 @@
         <h2>Elements</h2>
         <ul>
             <li id="hlt_heater">HLT Heater: {{ hlt_heater }}
-                <button onclick="toggleElement('hlt_heater')">Toggle</button>
+                <button id="btn_hlt_heater" onclick="toggleElement('hlt_heater')">Toggle</button>
             </li>
             <li id="hlt_pump">HLT Pump: {{ hlt_pump }}
-                <button onclick="toggleElement('hlt_pump')">Toggle</button>
+                <button id="btn_hlt_pump" onclick="toggleElement('hlt_pump')">Toggle</button>
             </li>
             <li id="mt_pump">MT Pump: {{ mt_pump }}
-                <button onclick="toggleElement('mt_pump')">Toggle</button>
+                <button id="btn_mlt_pump" onclick="toggleElement('mt_pump')">Toggle</button>
             </li>
         </ul>
         <h2>Time Left</h2>
@@ -40,12 +41,18 @@
             .then(data => {
                 lastStatus = data;
                 document.getElementById('hlt_temp').innerHTML = `HLT: ${data.hlt_temp} &deg;C`;
+                // Show/hide simulation mode indicator
+                document.getElementById('sim-indicator').style.display = data.sim_mode ? 'block' : 'none';
                 document.getElementById('mt_in_temp').innerHTML = `MT In: ${data.mt_in_temp} &deg;C`;
                 document.getElementById('mt_out_temp').innerHTML = `MT Out: ${data.mt_out_temp} &deg;C`;
                 document.getElementById('current_state').textContent = data.current_state;
-                document.getElementById('hlt_heater').innerHTML = `HLT Heater: ${data.hlt_heater} <button onclick=\"toggleElement('hlt_heater')\">Toggle</button>`;
-                document.getElementById('hlt_pump').innerHTML = `HLT Pump: ${data.hlt_pump} <button onclick=\"toggleElement('hlt_pump')\">Toggle</button>`;
-                document.getElementById('mt_pump').innerHTML = `MT Pump: ${data.mt_pump} <button onclick=\"toggleElement('mt_pump')\">Toggle</button>`;
+                document.getElementById('hlt_heater').innerHTML = `HLT Heater: ${data.hlt_heater} <button id=\"btn_hlt_heater\" onclick=\"toggleElement('hlt_heater')\">Toggle</button>`;
+                document.getElementById('hlt_pump').innerHTML = `HLT Pump: ${data.hlt_pump} <button id=\"btn_hlt_pump\" onclick=\"toggleElement('hlt_pump')\">Toggle</button>`;
+                document.getElementById('mt_pump').innerHTML = `MT Pump: ${data.mt_pump} <button id=\"btn_mlt_pump\" onclick=\"toggleElement('mt_pump')\">Toggle</button>`;
+                // Enable/disable buttons based on FSM state
+                document.getElementById('btn_hlt_heater').disabled = !data.can_override_heater;
+                document.getElementById('btn_hlt_pump').disabled = !data.can_override_hlt_pump;
+                document.getElementById('btn_mlt_pump').disabled = !data.can_override_mlt_pump;
                 document.getElementById('time_left').textContent = data.time_left;
             });
     }
