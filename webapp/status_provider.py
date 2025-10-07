@@ -18,7 +18,7 @@ except ImportError:
 class BrewSysStatusProvider:
     # 1-wire device files (from BrewSysApp.py)
     HLT_TEMP_SENSOR = '/sys/bus/w1/devices/28-021601a96aff/w1_slave'
-    MLT_IN_TEMP_SENSOR = '/sys/bus/w1/devices/28-03160468a3ff/w1_slave'
+    MLT_IN_TEMP_SENSOR = '/sys/bus/w1/devices/28-0316a49acfff/w1_slave'
     MLT_TEMP_SENSOR = '/sys/bus/w1/devices/28-031565df43ff/w1_slave'
 
 
