@@ -11,7 +11,8 @@ import sys
 sys.path.append('../src')
 try:
     from BrewSysTools import BrewSysRelay, Brew1WireSwitch
-except ImportError:
+except ImportError as e:
+    print(f"ERROR: Could not import BrewSysRelay or Brew1WireSwitch from BrewSysTools.py: {e}")
     BrewSysRelay = None
     Brew1WireSwitch = None
 
@@ -28,16 +29,22 @@ class BrewSysStatusProvider:
         if not sim_mode:
             if not self._hardware_available():
                 self._hardware_error = 'Missing one or more 1-wire sensor files.'
+                print('ERROR: Missing one or more 1-wire sensor files.')
                 self.sim_mode = True
             else:
                 try:
                     self._relay = BrewSysRelay() if BrewSysRelay else None
                     self._switch = Brew1WireSwitch('/sys/bus/w1/devices/3a-000000211dad/output') if Brew1WireSwitch else None
+                    if not self._relay:
+                        print('ERROR: BrewSysRelay class not available or failed to initialize.')
+                    if not self._switch:
+                        print('ERROR: Brew1WireSwitch class not available or failed to initialize.')
                     if not self._relay or not self._switch:
                         self._hardware_error = 'Relay or Switch class not available.'
                         self.sim_mode = True
                 except Exception as e:
                     self._hardware_error = f'Exception during relay/switch init: {e}'
+                    print(f'ERROR: Exception during relay/switch init: {e}')
                     self.sim_mode = True
         else:
             self._hardware_error = 'Simulation mode forced by parameter.'
