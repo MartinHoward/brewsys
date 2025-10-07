@@ -38,6 +38,7 @@
         <p id="time_left">{{ time_left }}</p>
         <button>Proceed</button>
     <div id="sim-indicator" style="color: orange; font-weight: bold; display: none; margin-top: 16px; text-align: center;">Simulation Mode Active</div>
+    <div id="hardware-error" style="color: red; font-weight: bold; display: none; margin-top: 8px; text-align: center;"></div>
     </div>
     <script>
     let lastStatus = {};
@@ -49,6 +50,13 @@
                 document.getElementById('hlt_temp').innerHTML = `HLT: ${data.hlt_temp} &deg;C`;
                 // Show/hide simulation mode indicator
                 document.getElementById('sim-indicator').style.display = data.sim_mode ? 'block' : 'none';
+                if (data.sim_mode && data.hardware_error) {
+                    document.getElementById('hardware-error').style.display = 'block';
+                    document.getElementById('hardware-error').textContent = data.hardware_error;
+                } else {
+                    document.getElementById('hardware-error').style.display = 'none';
+                    document.getElementById('hardware-error').textContent = '';
+                }
                 document.getElementById('mt_in_temp').innerHTML = `MT In: ${data.mt_in_temp} &deg;C`;
                 document.getElementById('mt_out_temp').innerHTML = `MT Out: ${data.mt_out_temp} &deg;C`;
                 document.getElementById('current_state').textContent = data.current_state;

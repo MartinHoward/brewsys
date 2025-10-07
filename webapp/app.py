@@ -3,7 +3,7 @@ from flask import Flask, render_template, jsonify, request
 from status_provider import BrewSysStatusProvider
 
 app = Flask(__name__)
-status_provider = BrewSysStatusProvider()
+status_provider = BrewSysStatusProvider(sim_mode=False)
 
 import sys
 sys.path.append('../src')

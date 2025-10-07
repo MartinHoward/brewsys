@@ -23,7 +23,24 @@ class BrewSysStatusProvider:
 
 
     def __init__(self, sim_mode=True):
-        self.sim_mode = sim_mode or not self._hardware_available()
+        self._hardware_error = None
+        self.sim_mode = sim_mode
+        if not sim_mode:
+            if not self._hardware_available():
+                self._hardware_error = 'Missing one or more 1-wire sensor files.'
+                self.sim_mode = True
+            else:
+                try:
+                    self._relay = BrewSysRelay() if BrewSysRelay else None
+                    self._switch = Brew1WireSwitch('/sys/bus/w1/devices/3a-000000211dad/output') if Brew1WireSwitch else None
+                    if not self._relay or not self._switch:
+                        self._hardware_error = 'Relay or Switch class not available.'
+                        self.sim_mode = True
+                except Exception as e:
+                    self._hardware_error = f'Exception during relay/switch init: {e}'
+                    self.sim_mode = True
+        else:
+            self._hardware_error = 'Simulation mode forced by parameter.'
         self.hlt_temp = 68.0
         self.mt_in_temp = 66.5
         self.mt_out_temp = 65.2
@@ -175,7 +192,7 @@ class BrewSysStatusProvider:
             hlt_pump = self._sim_hlt_pump
             mt_pump = self._sim_mt_pump
 
-        return {
+        status = {
             'hlt_temp': round(self.hlt_temp, 1),
             'mt_in_temp': round(self.mt_in_temp, 1),
             'mt_out_temp': round(self.mt_out_temp, 1),
@@ -190,3 +207,6 @@ class BrewSysStatusProvider:
             'fsm_state': self.fsm_state,
             'sim_mode': self.sim_mode,
         }
+        if self.sim_mode and self._hardware_error:
+            status['hardware_error'] = self._hardware_error
+        return status
