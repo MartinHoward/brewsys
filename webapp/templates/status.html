@@ -7,13 +7,28 @@
 </head>
 <body>
     <h1>BrewSys Main Status</h1>
-    <div class="status-section">
-        <h2>Temperatures</h2>
-        <ul>
-            <li id="hlt_temp">HLT: {{ hlt_temp }} &deg;C</li>
-            <li id="mt_in_temp">MT In: {{ mt_in_temp }} &deg;C</li>
-            <li id="mt_out_temp">MT Out: {{ mt_out_temp }} &deg;C</li>
-        </ul>
+    <div class="status-section" style="max-width:800px; margin: 0 auto;">
+        <h2></h2>
+    <div style="display: flex; gap: 32px; margin-bottom: 16px; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <span style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">HLT</span>
+                <div style="border: 2px solid #888; border-radius: 8px; padding: 16px 32px; background: #f8f8f8; min-width: 100px; text-align: center;">
+                    <span id="hlt_temp" style="font-size: 24px; font-weight: bold;">{{ hlt_temp }} &deg;C</span>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <span style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">MLT In</span>
+                <div style="border: 2px solid #888; border-radius: 8px; padding: 16px 32px; background: #f8f8f8; min-width: 100px; text-align: center;">
+                    <span id="mt_in_temp" style="font-size: 24px; font-weight: bold;">{{ mt_in_temp }} &deg;C</span>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <span style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">MLT</span>
+                <div style="border: 2px solid #888; border-radius: 8px; padding: 16px 32px; background: #f8f8f8; min-width: 100px; text-align: center;">
+                    <span id="mt_out_temp" style="font-size: 24px; font-weight: bold;">{{ mt_out_temp }} &deg;C</span>
+                </div>
+            </div>
+        </div>
         <h2>System State</h2>
         <p>Current State: <strong id="current_state">{{ current_state }}</strong></p>
         <h2>Elements</h2>
@@ -47,7 +62,7 @@
             .then(response => response.json())
             .then(data => {
                 lastStatus = data;
-                document.getElementById('hlt_temp').innerHTML = `HLT: ${data.hlt_temp} &deg;C`;
+                document.getElementById('hlt_temp').innerHTML = `${data.hlt_temp} &deg;C`;
                 // Show/hide simulation mode indicator
                 document.getElementById('sim-indicator').style.display = data.sim_mode ? 'block' : 'none';
                 if (data.sim_mode && data.hardware_error) {
@@ -57,15 +72,15 @@
                     document.getElementById('hardware-error').style.display = 'none';
                     document.getElementById('hardware-error').textContent = '';
                 }
-                document.getElementById('mt_in_temp').innerHTML = `MT In: ${data.mt_in_temp} &deg;C`;
-                document.getElementById('mt_out_temp').innerHTML = `MT Out: ${data.mt_out_temp} &deg;C`;
+                document.getElementById('mt_in_temp').innerHTML = `${data.mt_in_temp} &deg;C`;
+                document.getElementById('mt_out_temp').innerHTML = `${data.mt_out_temp} &deg;C`;
                 document.getElementById('current_state').textContent = data.current_state;
                 document.getElementById('btn_hlt_heater').style.backgroundColor = data.hlt_heater === 'ON' ? 'green' : 'red';
                 document.getElementById('btn_hlt_heater').textContent = `HLT Heater: ${data.hlt_heater}`;
                 document.getElementById('btn_hlt_pump').style.backgroundColor = data.hlt_pump === 'ON' ? 'green' : 'red';
                 document.getElementById('btn_hlt_pump').textContent = `HLT Pump: ${data.hlt_pump}`;
                 document.getElementById('btn_mlt_pump').style.backgroundColor = data.mt_pump === 'ON' ? 'green' : 'red';
-                document.getElementById('btn_mlt_pump').textContent = `MT Pump: ${data.mt_pump}`;
+                document.getElementById('btn_mlt_pump').textContent = `MLT Pump: ${data.mt_pump}`;
                 // Enable/disable buttons based on FSM state
                 document.getElementById('btn_hlt_heater').disabled = !data.can_override_heater;
                 document.getElementById('btn_hlt_pump').disabled = !data.can_override_hlt_pump;

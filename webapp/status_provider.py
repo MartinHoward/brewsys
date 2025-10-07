@@ -127,7 +127,16 @@ class BrewSysStatusProvider:
                 self.hlt_temp, self.mt_in_temp, self.mt_out_temp = self._simulate_temperature(
                     self.hlt_temp, self.mt_in_temp, self.mt_out_temp, self._sim_hlt_heater)
                 self.time_left = max(0, self.time_left - 5)
-            # In real mode, you would read sensors here
+            else:
+                # In real mode, read sensors and hardware states
+                self.hlt_temp = self._read_temp_sensor(self.HLT_TEMP_SENSOR) or self.hlt_temp
+                self.mt_in_temp = self._read_temp_sensor(self.MLT_IN_TEMP_SENSOR) or self.mt_in_temp
+                self.mt_out_temp = self._read_temp_sensor(self.MLT_TEMP_SENSOR) or self.mt_out_temp
+                # Periodically update relay/switch states if possible
+                # If hardware supports reading state, add here. Otherwise, keep last commanded state.
+                # Example: If BrewSysRelay/Brew1WireSwitch support status read, use it here.
+                # For now, just keep last commanded state (already tracked)
+                pass
             time.sleep(5)
 
     def _simulate_temperature(self, hltTemp, mltInTemp, mltTemp, heaterOn):
