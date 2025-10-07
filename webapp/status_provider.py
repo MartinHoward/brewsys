@@ -20,6 +20,41 @@ except ImportError as e:
     Brew1WireSwitch = None
 
 class BrewSysStatusProvider:
+    def set_hlt_heater(self, on):
+        if self.sim_mode:
+            self._sim_hlt_heater = bool(on)
+            self._last_hlt_heater = bool(on)
+        elif hasattr(self, '_switch') and self._switch:
+            if on:
+                self._switch.closeSwitchA()
+                self._last_hlt_heater = True
+            else:
+                self._switch.openSwitchAll()
+                self._last_hlt_heater = False
+
+    def set_hlt_pump(self, on):
+        if self.sim_mode:
+            self._sim_hlt_pump = bool(on)
+            self._last_hlt_pump = bool(on)
+        elif hasattr(self, '_relay') and self._relay:
+            if on:
+                self._relay.ON_1()
+                self._last_hlt_pump = True
+            else:
+                self._relay.OFF_1()
+                self._last_hlt_pump = False
+
+    def set_mt_pump(self, on):
+        if self.sim_mode:
+            self._sim_mt_pump = bool(on)
+            self._last_mt_pump = bool(on)
+        elif hasattr(self, '_relay') and self._relay:
+            if on:
+                self._relay.ON_2()
+                self._last_mt_pump = True
+            else:
+                self._relay.OFF_2()
+                self._last_mt_pump = False
     # 1-wire device files (from BrewSysApp.py)
     HLT_TEMP_SENSOR = '/sys/bus/w1/devices/28-021601a96aff/w1_slave'
     MLT_IN_TEMP_SENSOR = '/sys/bus/w1/devices/28-0316a49acfff/w1_slave'
