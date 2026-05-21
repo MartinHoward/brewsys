@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrewSys v0.3</title>
+<style>
+  :root {
+    --bg: #f0f0f0;
+    --panel: #ffffff;
+    --border: #cccccc;
+    --shadow: 0 2px 6px rgba(0,0,0,0.12);
+    --blue: #1565c0;
+    --green: #2e7d32;
+    --red: #c62828;
+    --orange: #e65100;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; }
+  h3 { font-size: 13px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  .page { display: grid; grid-template-columns: 1fr 380px; gap: 12px; padding: 12px; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 720px) { .page { grid-template-columns: 1fr; } }
+
+  /* ── Panels ─────────────────────────────────────────── */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: var(--shadow); }
+
+  /* ── Temperature displays ───────────────────────────── */
+  .temps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .temp-box { border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; }
+  .temp-box .label { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; }
+  .temp-box .value { font-size: 32px; font-weight: 700; line-height: 1; transition: color 0.4s; }
+  .temp-box .target { font-size: 12px; color: #888; margin-top: 2px; height: 14px; }
+
+  /* ── Equipment status ───────────────────────────────── */
+  .equipment { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .equip-item { display: flex; flex-direction: column; gap: 4px; }
+  .equip-item .label { font-size: 11px; font-weight: 600; color: #555; }
+  .status-badge { padding: 6px 8px; border-radius: 4px; font-size: 13px; font-weight: 700; text-align: center; border: 1px solid rgba(0,0,0,0.1); }
+  .status-on  { background: #c8e6c9; color: #1b5e20; }
+  .status-off { background: #ffcdd2; color: #b71c1c; }
+  .status-heat { background: #ffe0b2; color: #bf360c; }
+  .status-idle { background: #f5f5f5; color: #757575; }
+  .toggle-btn { padding: 5px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+  .toggle-btn:disabled { opacity: 0.35; cursor: default; }
+  .toggle-btn:not(:disabled):hover { background: #e3f2fd; }
+
+  /* ── Timer ──────────────────────────────────────────── */
+  .timer-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; min-height: 36px; }
+  .timer-label { font-size: 12px; font-weight: 600; color: #555; }
+  .timer-value { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.05em; color: #222; }
+
+  /* ── Status text / FSM state ────────────────────────── */
+  .status-text { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 10px; padding: 6px 10px; background: #e8eaf6; border-radius: 4px; }
+
+  /* ── Proceed / Abort buttons ────────────────────────── */
+  .proceed-btn {
+    width: 100%; padding: 18px; font-size: 20px; font-weight: 700;
+    border: none; border-radius: 6px; cursor: pointer;
+    background: #1976d2; color: #fff; margin-bottom: 8px;
+    transition: background 0.2s;
+  }
+  .proceed-btn:disabled { background: #b0bec5; cursor: default; }
+  .proceed-btn:not(:disabled):hover { background: #1565c0; }
+  .proceed-btn.abort { background: #d32f2f; }
+  .proceed-btn.abort:hover { background: #b71c1c; }
+
+  .sparge-btn {
+    width: 100%; padding: 14px; font-size: 18px; font-weight: 700;
+    border: none; border-radius: 6px; cursor: pointer;
+    background: #f57c00; color: #fff; margin-bottom: 8px;
+    transition: background 0.2s;
+  }
+  .sparge-btn:hover { background: #e65100; }
+  .sparge-btn.paused { background: #388e3c; }
+  .sparge-btn.paused:hover { background: #2e7d32; }
+
+  /* ── Right panel — tabs ──────────────────────────────── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 10px; }
+  .tab-btn { flex: 1; padding: 7px 4px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 4px 4px 0 0; background: #e0e0e0; cursor: pointer; color: #555; }
+  .tab-btn.active { background: #fff; border-bottom-color: #fff; color: #1565c0; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Form controls ───────────────────────────────────── */
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .field-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 11px; font-weight: 600; color: #666; }
+  .field input[type=number] {
+    padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px;
+    font-size: 16px; font-weight: 700; width: 100%; background: #fafafa;
+  }
+  .field input:disabled { background: #f0f0f0; color: #aaa; }
+  .step-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .step-indicator { width: 14px; height: 14px; border-radius: 50%; background: grey; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.2); }
+  .step-heading { font-size: 12px; font-weight: 700; color: #444; }
+  .enable-check { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .section-sep { border: none; border-top: 1px solid #e0e0e0; margin: 10px 0; }
+
+  .apply-btn {
+    width: 100%; padding: 12px; font-size: 15px; font-weight: 700;
+    border: none; border-radius: 6px; cursor: pointer;
+    background: #388e3c; color: #fff; margin-top: 12px;
+    transition: background 0.2s;
+  }
+  .apply-btn:disabled { background: #b0bec5; cursor: default; }
+  .apply-btn:not(:disabled):hover { background: #2e7d32; }
+
+  /* ── Connection banner ───────────────────────────────── */
+  #conn-banner { display: none; background: #f44336; color: #fff; text-align: center; padding: 6px; font-weight: 600; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="conn-banner">Connection lost — reconnecting…</div>
+
+<div class="page">
+
+  <!-- ── LEFT PANEL ─────────────────────────────────── -->
+  <div>
+
+    <!-- Temperatures -->
+    <div class="panel" style="margin-bottom:12px">
+      <h3>Temperatures (°C)</h3>
+      <div class="temps">
+        <div class="temp-box">
+          <div class="label">HLT</div>
+          <div class="value" id="hlt-temp">—</div>
+          <div class="target" id="hlt-target"></div>
+        </div>
+        <div class="temp-box">
+          <div class="label">MLT In</div>
+          <div class="value" id="mlt-in-temp">—</div>
+          <div class="target" id="mlt-in-target"></div>
+        </div>
+        <div class="temp-box">
+          <div class="label">MLT</div>
+          <div class="value" id="mlt-temp">—</div>
+          <div class="target" id="mlt-target"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equipment status -->
+    <div class="panel" style="margin-bottom:12px">
+      <h3>Equipment</h3>
+      <div class="equipment">
+        <div class="equip-item">
+          <span class="label">HLT Heater</span>
+          <div class="status-badge status-idle" id="heater-status">Stopped</div>
+          <button class="toggle-btn" id="heater-toggle" onclick="post('/override/heater')">Toggle</button>
+        </div>
+        <div class="equip-item">
+          <span class="label">HLT Pump</span>
+          <div class="status-badge status-off" id="hlt-pump-status">Stopped</div>
+          <button class="toggle-btn" id="hlt-pump-toggle" onclick="post('/override/hlt_pump')">Toggle</button>
+        </div>
+        <div class="equip-item">
+          <span class="label">MLT Pump</span>
+          <div class="status-badge status-off" id="mlt-pump-status">Stopped</div>
+          <button class="toggle-btn" id="mlt-pump-toggle" onclick="post('/override/mlt_pump')">Toggle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer + status -->
+    <div class="panel" style="margin-bottom:12px">
+      <div class="timer-row" id="timer-row" style="display:none">
+        <span class="timer-label">Time Remaining</span>
+        <span class="timer-value" id="timer-display">0:00</span>
+      </div>
+      <div class="status-text" id="status-text">—</div>
+    </div>
+
+    <!-- Proceed / Abort -->
+    <button class="proceed-btn" id="proceed-btn" onclick="proceed()" disabled>—</button>
+    <button class="sparge-btn" id="sparge-btn" onclick="post('/override/mlt_pump')" style="display:none">Pause Sparge</button>
+
+  </div>
+
+  <!-- ── RIGHT PANEL ────────────────────────────────── -->
+  <div class="panel">
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('step-mash', this)">Step Mash</button>
+      <button class="tab-btn" onclick="switchTab('mashout', this)">Mashout / Sparge</button>
+      <button class="tab-btn" onclick="switchTab('settings', this)">Settings</button>
+    </div>
+
+    <!-- Step Mash tab -->
+    <div class="tab-pane active" id="tab-step-mash">
+      <div class="step-row">
+        <div class="step-indicator" id="ind-step1"></div>
+        <span class="step-heading">Step 1</span>
+      </div>
+      <div class="field-grid" style="margin-bottom:10px">
+        <div class="field"><label>Strike Temp (°C)</label><input type="number" id="f-mash-in-temp" step="0.5" min="0" max="90"></div>
+        <div class="field"><label>Step 1 Temp (°C)</label><input type="number" id="f-step1-temp" step="0.5" min="0" max="90"></div>
+        <div class="field"><label>Step 1 Time (min)</label><input type="number" id="f-step1-time" step="1" min="0" max="180"></div>
+      </div>
+
+      <hr class="section-sep">
+      <div class="step-row" style="margin-bottom:6px">
+        <div class="step-indicator" id="ind-step2"></div>
+        <span class="step-heading">Step 2</span>
+        <label class="enable-check" style="margin-left:auto">
+          <input type="checkbox" id="step2-enable" onchange="toggleStep(2)"> Enable
+        </label>
+      </div>
+      <div class="field-grid" id="step2-fields" style="margin-bottom:10px">
+        <div class="field"><label>Step 2 Temp (°C)</label><input type="number" id="f-step2-temp" step="0.5" min="0" max="90" disabled></div>
+        <div class="field"><label>Step 2 Time (min)</label><input type="number" id="f-step2-time" step="1" min="0" max="180" disabled></div>
+      </div>
+
+      <hr class="section-sep">
+      <div class="step-row" style="margin-bottom:6px">
+        <div class="step-indicator" id="ind-step3"></div>
+        <span class="step-heading">Step 3</span>
+        <label class="enable-check" style="margin-left:auto">
+          <input type="checkbox" id="step3-enable" onchange="toggleStep(3)"> Enable
+        </label>
+      </div>
+      <div class="field-grid" id="step3-fields">
+        <div class="field"><label>Step 3 Temp (°C)</label><input type="number" id="f-step3-temp" step="0.5" min="0" max="90" disabled></div>
+        <div class="field"><label>Step 3 Time (min)</label><input type="number" id="f-step3-time" step="1" min="0" max="180" disabled></div>
+      </div>
+    </div>
+
+    <!-- Mashout / Sparge tab -->
+    <div class="tab-pane" id="tab-mashout">
+      <div class="field-grid" style="margin-bottom:10px">
+        <div class="field"><label>Mashout Temp (°C)</label><input type="number" id="f-mashout-temp" step="0.5" min="0" max="90"></div>
+        <div class="field"><label>Mashout Time (min)</label><input type="number" id="f-mashout-time" step="1" min="0" max="60"></div>
+      </div>
+      <hr class="section-sep">
+      <div class="field-grid">
+        <div class="field"><label>Sparge Temp (°C)</label><input type="number" id="f-sparge-temp" step="0.5" min="0" max="90"></div>
+      </div>
+    </div>
+
+    <!-- Settings tab -->
+    <div class="tab-pane" id="tab-settings">
+      <h3 style="margin-bottom:8px">HLT Overshoot</h3>
+      <div class="field-grid" style="margin-bottom:10px">
+        <div class="field"><label>HLT Overtemp (°C)</label><input type="number" id="f-hlt-overshoot" step="0.5" min="0" max="20"></div>
+        <div class="field"><label>Max HLT Overshoot (°C)</label><input type="number" id="f-hlt-max-overshoot" step="0.5" min="0" max="20"></div>
+      </div>
+      <hr class="section-sep">
+      <h3 style="margin-bottom:8px">Sensor Calibration</h3>
+      <div class="field-grid triple">
+        <div class="field"><label>HLT Calib (°C)</label><input type="number" id="f-hlt-calib" step="0.1" min="-5" max="5"></div>
+        <div class="field"><label>MLT In Calib (°C)</label><input type="number" id="f-mlt-in-calib" step="0.1" min="-5" max="5"></div>
+        <div class="field"><label>MLT Calib (°C)</label><input type="number" id="f-mlt-calib" step="0.1" min="-5" max="5"></div>
+      </div>
+    </div>
+
+    <button class="apply-btn" id="apply-btn" onclick="applySettings()" disabled>Apply</button>
+
+  </div>
+</div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+
+  function post(url) {
+    fetch(url, { method: 'POST' })
+      .then(r => r.json())
+      .then(updateUI)
+      .catch(console.error);
+  }
+
+  function proceed() {
+    const state = lastState;
+    if (state && state.at_start) {
+      // In start state the button triggers Apply then Proceed
+      applySettings(() => post('/proceed'));
+    } else {
+      post('/proceed');
+    }
+  }
+
+  // ── WebSocket ─────────────────────────────────────────────────────────
+  let lastState = null;
+  let ws;
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+    ws.onopen = () => {
+      $('conn-banner').style.display = 'none';
+    };
+
+    ws.onmessage = (e) => {
+      const state = JSON.parse(e.data);
+      lastState = state;
+      updateUI(state);
+    };
+
+    ws.onclose = () => {
+      $('conn-banner').style.display = 'block';
+      setTimeout(connect, 3000);
+    };
+  }
+
+  connect();
+
+  // ── UI update ─────────────────────────────────────────────────────────
+  function tempColor(temp, target) {
+    if (!target || target <= 0) return '';
+    const tol = 0.5;
+    if (temp < target - tol) return 'color:#1565c0';    // blue
+    if (temp > target + tol) return 'color:#c62828';    // red
+    return 'color:#2e7d32';                              // green
+  }
+
+  function fmtTemp(temp) { return temp.toFixed(1); }
+
+  function fmtTime(secs) {
+    const m = Math.floor(Math.abs(secs) / 60);
+    const s = Math.abs(secs) % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function updateUI(s) {
+    // Temperatures
+    $('hlt-temp').textContent = fmtTemp(s.hlt_temp);
+    $('hlt-temp').style.cssText = tempColor(s.hlt_temp, s.hlt_target);
+    $('hlt-target').textContent = s.hlt_target > 0 ? `→ ${s.hlt_target}` : '';
+
+    $('mlt-in-temp').textContent = fmtTemp(s.mlt_in_temp);
+    $('mlt-in-temp').style.cssText = tempColor(s.mlt_in_temp, s.mlt_in_target);
+    $('mlt-in-target').textContent = s.mlt_in_target > 0 ? `→ ${s.mlt_in_target}` : '';
+
+    $('mlt-temp').textContent = fmtTemp(s.mlt_temp);
+    $('mlt-temp').style.cssText = tempColor(s.mlt_temp, s.mlt_target);
+    $('mlt-target').textContent = s.mlt_target > 0 ? `→ ${s.mlt_target}` : '';
+
+    // Heater status
+    const heaterEl = $('heater-status');
+    if (s.heater_on) {
+      heaterEl.className = 'status-badge status-heat';
+      heaterEl.textContent = 'Heating';
+    } else {
+      heaterEl.className = 'status-badge status-idle';
+      heaterEl.textContent = 'Stopped';
+    }
+    $('heater-toggle').disabled = !s.heater_override_allowed;
+
+    // HLT pump
+    const hltPumpEl = $('hlt-pump-status');
+    hltPumpEl.className = 'status-badge ' + (s.hlt_pump_on ? 'status-on' : 'status-off');
+    hltPumpEl.textContent = s.hlt_pump_on ? 'Working' : 'Stopped';
+    $('hlt-pump-toggle').disabled = !s.hlt_pump_override_allowed;
+
+    // MLT pump
+    const mltPumpEl = $('mlt-pump-status');
+    mltPumpEl.className = 'status-badge ' + (s.mlt_pump_on ? 'status-on' : 'status-off');
+    mltPumpEl.textContent = s.mlt_pump_on ? 'Working' : 'Stopped';
+    $('mlt-pump-toggle').disabled = !s.mlt_pump_override_allowed;
+
+    // Timer
+    const timerRow = $('timer-row');
+    if (s.show_timer) {
+      timerRow.style.display = 'flex';
+      $('timer-display').textContent = fmtTime(s.time_left);
+    } else {
+      timerRow.style.display = 'none';
+    }
+
+    // Status text
+    $('status-text').textContent = s.status_text;
+
+    // Proceed button
+    const proceedBtn = $('proceed-btn');
+    proceedBtn.disabled = s.at_start;
+    proceedBtn.textContent = s.at_start ? 'Configure recipe then press Apply' : s.status_text;
+    proceedBtn.className = 'proceed-btn' + (!s.at_start ? '' : '');
+
+    // Pause sparge button
+    const spargeBtn = $('sparge-btn');
+    if (s.show_sparge_pause) {
+      spargeBtn.style.display = 'block';
+      spargeBtn.textContent = s.mlt_pump_paused ? 'Resume Sparge' : 'Pause Sparge';
+      spargeBtn.className = 'sparge-btn' + (s.mlt_pump_paused ? ' paused' : '');
+    } else {
+      spargeBtn.style.display = 'none';
+    }
+
+    // Step indicators
+    const colors = { grey: '#bdbdbd', yellow: '#fdd835', green: '#66bb6a' };
+    $('ind-step1').style.background = colors[s.step_indicators.step1] || colors.grey;
+    $('ind-step2').style.background = colors[s.step_indicators.step2] || colors.grey;
+    $('ind-step3').style.background = colors[s.step_indicators.step3] || colors.grey;
+
+    // Apply button — only enabled in start state
+    $('apply-btn').disabled = !s.at_start;
+
+    // Populate recipe fields only when at start (so user edits aren't clobbered mid-brew)
+    if (s.at_start) {
+      const r = s.recipe;
+      setField('f-mash-in-temp', r.mash_in_temp);
+      setField('f-step1-temp', r.step1_temp);
+      setField('f-step1-time', r.step1_time);
+      setField('f-step2-temp', r.step2_temp);
+      setField('f-step2-time', r.step2_time);
+      setField('f-step3-temp', r.step3_temp);
+      setField('f-step3-time', r.step3_time);
+      setField('f-mashout-temp', r.mashout_temp);
+      setField('f-mashout-time', r.mashout_time);
+      setField('f-sparge-temp', r.sparge_temp);
+      setField('f-hlt-overshoot', r.hlt_overshoot);
+      setField('f-hlt-max-overshoot', r.hlt_max_overshoot);
+
+      $('step2-enable').checked = r.step2_enabled;
+      $('step3-enable').checked = r.step3_enabled;
+      applyStepEnable(2, r.step2_enabled);
+      applyStepEnable(3, r.step3_enabled);
+    }
+
+    // Disable all form inputs when brewing is in progress
+    const fieldsDisabled = !s.at_start;
+    document.querySelectorAll('.field input').forEach(el => el.disabled = fieldsDisabled);
+    // Re-apply step enable state on top of the above
+    if (s.at_start) {
+      applyStepEnable(2, $('step2-enable').checked);
+      applyStepEnable(3, $('step3-enable').checked);
+    }
+    $('step2-enable').disabled = fieldsDisabled;
+    $('step3-enable').disabled = fieldsDisabled;
+  }
+
+  function setField(id, val) {
+    const el = $(id);
+    if (el && document.activeElement !== el) el.value = val;
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    $(`tab-${name}`).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Step enable toggles ───────────────────────────────────────────────
+  function toggleStep(n) {
+    const enabled = $(`step${n}-enable`).checked;
+    applyStepEnable(n, enabled);
+  }
+
+  function applyStepEnable(n, enabled) {
+    const t = $(`f-step${n}-temp`);
+    const ti = $(`f-step${n}-time`);
+    const atStart = lastState && lastState.at_start;
+    if (t) t.disabled = !enabled || !atStart;
+    if (ti) ti.disabled = !enabled || !atStart;
+  }
+
+  // ── Apply settings ────────────────────────────────────────────────────
+  function applySettings(callback) {
+    const step2en = $('step2-enable').checked;
+    const step3en = $('step3-enable').checked;
+
+    const settings = {
+      mash_in_temp: numVal('f-mash-in-temp'),
+      step1_temp: numVal('f-step1-temp'),
+      step1_time: numVal('f-step1-time'),
+      step2_enabled: step2en,
+      step2_temp: numVal('f-step2-temp'),
+      step2_time: numVal('f-step2-time'),
+      step3_enabled: step3en,
+      step3_temp: numVal('f-step3-temp'),
+      step3_time: numVal('f-step3-time'),
+      mashout_temp: numVal('f-mashout-temp'),
+      mashout_time: numVal('f-mashout-time'),
+      sparge_temp: numVal('f-sparge-temp'),
+      hlt_overshoot: numVal('f-hlt-overshoot'),
+      hlt_max_overshoot: numVal('f-hlt-max-overshoot'),
+    };
+
+    fetch('/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    })
+    .then(r => r.json())
+    .then(data => {
+      updateUI(data);
+      if (callback) callback();
+    })
+    .catch(console.error);
+  }
+
+  function numVal(id) {
+    const v = parseFloat($(id).value);
+    return isNaN(v) ? 0 : v;
+  }
+</script>
+</body>
+</html>

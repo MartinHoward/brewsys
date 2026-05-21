@@ -24,7 +24,7 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.setupUi(self)
         self.timer1 = QtCore.QTimer()
         self.simMode = sim_mode
-        self.thr = Thread(target=self.getTempFromSensors, args=(), kwargs={})
+        self.thr1 = Thread(target=self.getTempFromSensors, args=(), kwargs={})
 
         # set up temp sensors
         if not self.simMode:
@@ -48,7 +48,6 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.hltHeaterOverride = False
         self.hltPumpOverride = False
         self.mltPumpOverride = False
-        self.simTempLag = 0
 
         # initialize state machine with mash recipe variables
         self.brewFSM = BrewSysFSM()
@@ -69,12 +68,12 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
         self.pauseSpargeButton.clicked.connect(lambda: self.handleSpargePauseButtonPress())
         self.step2EnableCheckBox.clicked.connect(lambda: self.handleStep2CheckBox())
         self.step3EnableCheckBox.clicked.connect(lambda: self.handleStep3CheckBox())
-        self.timer1.start(5000)
+        self.timer1.start(2000)
 
         # initialize mash step controls
         self.updateStepMashControls()
         
-        self.thr.start()
+        self.thr1.start()
         
     def getTempFromSensors(self):
         while True:
@@ -322,12 +321,13 @@ class BrewSysApp(QtWidgets.QMainWindow, Ui_brewSysMain):
             self.mltPumpStatusDisplay.setText("Working")
 
     def simulateTemperature(self, hltTemp, mltInTemp, mltTemp, heaterOn):
+        simTempLag = 0
         if heaterOn:
-            self.simTempLag = 3
-        elif self.simTempLag > 0:
-            self.simTempLag -= 1
+            simTempLag = 3
+        elif simTempLag > 0:
+            simTempLag -= 1
 
-        if heaterOn or self.simTempLag > 0:
+        if heaterOn or simTempLag > 0:
             heating = True
         else:
             heating = False
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     widget = QtWidgets.QDesktopWidget()
 
-    window = BrewSysApp(False)
+    window = BrewSysApp(True)
     rect = widget.availableGeometry(0)
     window.move(rect.left(), rect.top())
     # window.resize(rect.width(),rect.height())
