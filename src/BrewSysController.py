@@ -249,7 +249,7 @@ class BrewSysController:
             'hlt_pump_override': self.hlt_pump_override,
             'mlt_pump_override': self.mlt_pump_override,
             'at_start': s == mash_start,
-            'show_sparge_pause': s[state_index_mlt_pump_override] and s != mash_start,
+            'show_sparge_pause': s[state_index_mlt_pump_override] and s != mash_start and s != mash_pre_check_str
             'mlt_pump_paused': self.mlt_pump_override,
             'step_indicators': self._get_step_indicators(),
             'recipe': self._get_recipe(),
