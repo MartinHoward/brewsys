@@ -80,5 +80,5 @@ async def update_settings(request: Request):
 
 if __name__ == '__main__':
     mode = 'hardware' if not sim_mode else 'simulation'
-    print(f'Starting BrewSys web interface in {mode} mode on http://0.0.0.0:8000')
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    print(f'Starting BrewSys web interface in {mode} mode on http://0.0.0.0:9929')
+    uvicorn.run(app, host='0.0.0.0', port=9929)
