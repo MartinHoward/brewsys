@@ -277,6 +277,7 @@
   // ── WebSocket ─────────────────────────────────────────────────────────
   let lastState = null;
   let settingsApplied = false;
+  let prevAtStart = null;   // tracks transitions into/out of mash_start
   let ws;
 
   function connect() {
@@ -400,8 +401,11 @@
       applyBtn.onclick = () => post('/abort');
     }
 
-    // Populate recipe fields only when at start (so user edits aren't clobbered mid-brew)
-    if (s.at_start) {
+    // Populate recipe fields only on first entry into mash_start (page load or after abort),
+    // not on every WebSocket tick — otherwise user edits get clobbered before Apply is clicked.
+    const justEnteredStart = s.at_start && !prevAtStart;
+    prevAtStart = s.at_start;
+    if (justEnteredStart) {
       const r = s.recipe;
       setField('f-mash-in-temp', r.mash_in_temp);
       setField('f-step1-temp', r.step1_temp);
