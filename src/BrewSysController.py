@@ -304,6 +304,9 @@ class BrewSysController:
             'sparge_temp': self.brew_fsm.getSpargeTemperature(),
             'hlt_overshoot': self.brew_fsm.getHltTempOvershoot(),
             'hlt_max_overshoot': self.brew_fsm.getHltMaxTargetTempOvershoot(),
+            'hlt_calib': self.hlt_temp_sensor.getCalibAdjustment() if not self.sim_mode else 0,
+            'mlt_in_calib': self.mlt_in_temp_sensor.getCalibAdjustment() if not self.sim_mode else 0,
+            'mlt_calib': self.mlt_temp_sensor.getCalibAdjustment() if not self.sim_mode else 0,
         }
 
     def get_state(self):

@@ -51,9 +51,6 @@
   .timer-label { font-size: 12px; font-weight: 600; color: #555; }
   .timer-value { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.05em; color: #222; }
 
-  /* ── Status text / FSM state ────────────────────────── */
-  .status-text { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 10px; padding: 6px 10px; background: #e8eaf6; border-radius: 4px; }
-
   /* ── Proceed / Abort buttons ────────────────────────── */
   .proceed-btn {
     width: 100%; padding: 18px; font-size: 20px; font-weight: 700;
@@ -107,6 +104,8 @@
   }
   .apply-btn:disabled { background: #b0bec5; cursor: default; }
   .apply-btn:not(:disabled):hover { background: #2e7d32; }
+  .apply-btn.abort { background: #d32f2f; }
+  .apply-btn.abort:hover { background: #b71c1c; }
 
   /* ── Connection banner ───────────────────────────────── */
   #conn-banner { display: none; background: #f44336; color: #fff; text-align: center; padding: 6px; font-weight: 600; font-size: 13px; }
@@ -171,7 +170,6 @@
         <span class="timer-label">Time Remaining</span>
         <span class="timer-value" id="timer-display">0:00</span>
       </div>
-      <div class="status-text" id="status-text">—</div>
     </div>
 
     <!-- Proceed / Abort -->
@@ -273,17 +271,12 @@
   }
 
   function proceed() {
-    const state = lastState;
-    if (state && state.at_start) {
-      // In start state the button triggers Apply then Proceed
-      applySettings(() => post('/proceed'));
-    } else {
-      post('/proceed');
-    }
+    post('/proceed');
   }
 
   // ── WebSocket ─────────────────────────────────────────────────────────
   let lastState = null;
+  let settingsApplied = false;
   let ws;
 
   function connect() {
@@ -371,14 +364,11 @@
       timerRow.style.display = 'none';
     }
 
-    // Status text
-    $('status-text').textContent = s.status_text;
-
-    // Proceed button
+    // Proceed button — disabled in mash_start until Apply has been clicked
     const proceedBtn = $('proceed-btn');
-    proceedBtn.disabled = s.at_start;
-    proceedBtn.textContent = s.at_start ? 'Configure recipe then press Apply' : s.status_text;
-    proceedBtn.className = 'proceed-btn' + (!s.at_start ? '' : '');
+    if (!s.at_start) settingsApplied = false;  // reset when FSM leaves mash_start
+    proceedBtn.disabled = s.at_start && !settingsApplied;
+    proceedBtn.textContent = s.status_text;    // always show FSM state text (matches Qt)
 
     // Pause sparge button
     const spargeBtn = $('sparge-btn');
@@ -396,8 +386,19 @@
     $('ind-step2').style.background = colors[s.step_indicators.step2] || colors.grey;
     $('ind-step3').style.background = colors[s.step_indicators.step3] || colors.grey;
 
-    // Apply button — only enabled in start state
-    $('apply-btn').disabled = !s.at_start;
+    // Apply/Abort button — Apply in mash_start, Abort otherwise (matches Qt)
+    const applyBtn = $('apply-btn');
+    if (s.at_start) {
+      applyBtn.textContent = settingsApplied ? 'Abort!' : 'Apply';
+      applyBtn.className = 'apply-btn' + (settingsApplied ? ' abort' : '');
+      applyBtn.disabled = false;
+      applyBtn.onclick = settingsApplied ? () => post('/abort') : applySettings;
+    } else {
+      applyBtn.textContent = 'Abort!';
+      applyBtn.className = 'apply-btn abort';
+      applyBtn.disabled = false;
+      applyBtn.onclick = () => post('/abort');
+    }
 
     // Populate recipe fields only when at start (so user edits aren't clobbered mid-brew)
     if (s.at_start) {
@@ -414,6 +415,9 @@
       setField('f-sparge-temp', r.sparge_temp);
       setField('f-hlt-overshoot', r.hlt_overshoot);
       setField('f-hlt-max-overshoot', r.hlt_max_overshoot);
+      setField('f-hlt-calib', r.hlt_calib);
+      setField('f-mlt-in-calib', r.mlt_in_calib);
+      setField('f-mlt-calib', r.mlt_calib);
 
       $('step2-enable').checked = r.step2_enabled;
       $('step3-enable').checked = r.step3_enabled;
@@ -489,6 +493,7 @@
     })
     .then(r => r.json())
     .then(data => {
+      settingsApplied = true;
       updateUI(data);
       if (callback) callback();
     })
