@@ -10,7 +10,7 @@ from BrewSysTools import (
     state_index_heater_override, state_index_hlt_pump_override, state_index_mlt_pump_override,
     time_to_heat_hlt, time_to_heat_mlt, time_wait_user,
     temp_src_hlt, temp_src_mlt_in, temp_src_mlt,
-    mash_start, mash_hlt_heating, mash_mlt_heating, mash_mlt_heating_wait,
+    mash_start, mash_pre_check, mash_hlt_heating, mash_mlt_heating, mash_mlt_heating_wait,
     mash_step1_rest, mash_pre_step2, mash_step2_rest, mash_pre_step3,
     mash_step3_rest, mash_pre_mash_out,
     mash_step1_str, mash_step2_str, mash_step3_str,
